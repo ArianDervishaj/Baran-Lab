@@ -23,3 +23,5 @@ L'objectif est de démontrer la robustesse des réseaux distribués en simulant 
 
 
 NetworkX
+
+Ecart types des mesures
