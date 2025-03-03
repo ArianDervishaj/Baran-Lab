@@ -1,8 +1,6 @@
 import networkx as nx
 import numpy as np
 
-# Core Simulation Functions
-
 
 def simulate_failures(G, failure_percentage, failure_type="node"):
     """
@@ -98,7 +96,37 @@ def run_simulation(
     return list(means), list(stds)
 
 
-# Network Metrics Functions
+def run_failure_simulations(topologies, size, failure_probs, failure_type):
+    """
+    Run simulations for all topologies with specified failure type.
+
+    Args:
+        topologies: List of topology dictionaries with keys: generator, label, format
+        size: Size parameter for the graph
+        failure_probs: List of failure probabilities to test
+        failure_type: Type of failure to simulate ("node" or "link")
+
+    Returns:
+        List of tuples (means, stds, label, format) for each topology
+    """
+    failure_name = "node" if failure_type == "node" else "link"
+    print(f"Running {failure_name} failure simulations...")
+    results = []
+
+    for topo in topologies:
+        print(f"Running {failure_name} failure simulation for {topo['label']}...")
+        means, stds = run_simulation(
+            topo["generator"], size, failure_probs, failure_type
+        )
+
+        # Use dashed lines for link failures to distinguish from node failures
+        format_spec = topo["format"]
+        if failure_type == "link":
+            format_spec = format_spec.replace("-", "--")
+
+        results.append((means, stds, topo["label"], format_spec))
+
+    return results
 
 
 def calculate_redundancy(G, size):
