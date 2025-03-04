@@ -89,5 +89,20 @@ def main():
     print(f"Execution time: {execution_time:.2f} seconds")
 
 
+def interactive_mode():
+    """Run the interactive visualization for manual node removal and analysis"""
+    print("Starting interactive visualization mode...")
+
+    # Define topologies to visualize
+    topologies = define_topologies()
+
+    # Use a smaller grid size for the interactive visualization
+    small_size = 6
+
+    # Launch the interactive visualization
+    interactive_visualize_topologies_with_importance(topologies, small_size)
+
+
 if __name__ == "__main__":
-    main()
+    # Uncomment the mode you want to run
+    main()  # Run standard simulation

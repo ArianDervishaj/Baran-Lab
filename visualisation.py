@@ -13,7 +13,6 @@ COLOR_MAP = {
     "y": "yellow",
     "k": "black",
     "w": "white",
-
     "v": "darkviolet",
     "i": "indigo",
     "o": "darkorange",
