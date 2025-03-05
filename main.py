@@ -1,3 +1,4 @@
+import argparse
 import time
 
 import numpy as np
@@ -10,8 +11,6 @@ from topologies import (create_grid_plus_plus_topology,
                         create_tree_topology)
 from visualisation import visualize_results
 
-SIZE = 18
-
 
 def define_topologies():
     """Define the network topologies to be simulated with expanded color options"""
@@ -20,74 +19,117 @@ def define_topologies():
             "generator": create_line_topology,
             "name": "R=1: Topologie en ligne",
             "label": "R=1 (Ligne)",
-            "format": "bo-",  # Dodgerblue circles
+            "format": "bo-",
         },
         {
             "generator": create_grid_topology,
             "name": "R=2: Topologie en grille",
             "label": "R=2 (Grille)",
-            "format": "go-",  # Limegreen circles
+            "format": "go-",
         },
         {
             "generator": create_grid_plus_topology,
             "name": "R=3: Topologie en grille+",
             "label": "R=3 (Grille+)",
-            "format": "ro-",  # Crimson circles
+            "format": "ro-",
         },
         {
             "generator": create_grid_plus_plus_topology,
             "name": "R=4: Topologie en grille++",
             "label": "R=4 (Grille++)",
-            "format": "do-",  # Darkviolet circles
+            "format": "do-",
         },
         {
             "generator": create_tree_topology,
             "name": "Topologie en arbre",
             "label": "Arbre",
-            "format": "mo-",  # Darkorange circles
+            "format": "mo-",
         },
         {
             "generator": create_star_topology,
             "name": "Topologie en étoile",
             "label": "Etoile",
-            "format": "vo-",  # Deeppink circles
+            "format": "vo-",
         },
         {
             "generator": create_ring_topology,
             "name": "Topologie en Anneau",
             "label": "Anneau",
-            "format": "io-",  # Teal circles
+            "format": "io-",
         },
         {
             "generator": create_hybrid_topology,
             "name": "Topologie hybrid",
             "label": "Hybrid",
-            "format": "oo-",  # Navy circles
+            "format": "oo-",
         },
     ]
 
 
+def parse_arguments():
+    """Parse command-line arguments"""
+    parser = argparse.ArgumentParser(
+        description="Network Resilience Simulation")
+    parser.add_argument(
+        "-s",
+        "--size",
+        type=int,
+        default=18,
+        help="Size parameter for the simulation (default: 18)",
+    )
+    parser.add_argument(
+        "-p",
+        "--points",
+        type=int,
+        default=21,
+        help="Number of probability points (default: 21)",
+    )
+    parser.add_argument(
+        "-n",
+        "--trials",
+        type=int,
+        default=15,
+        help="Number of trials per probability point (default: 15)",
+    )
+    parser.add_argument(
+        "-v",
+        "--visual",
+        type=int,
+        default=6,
+        help="Number of node in the visualisation",
+    )
+    return parser.parse_args()
+
+
 def main():
     """Main execution function for network resilience simulation"""
+    args = parse_arguments()
+
+    print(
+        f"Running simulation with size={args.size}, points={args.points}, trials={args.trials}, visualisation size={args.visual}"
+    )
+
     start_time = time.time()
 
-    # Generate failure probabilities
-    failure_probs = np.linspace(0, 1, 21)
+    failure_probs = np.linspace(0, 1, args.points + 1)
 
-    # Define topologies to simulate
     topologies = define_topologies()
 
-    # Run simulations
-    node_results = run_failure_simulations(topologies, SIZE, failure_probs, "node")
-    link_results = run_failure_simulations(topologies, SIZE, failure_probs, "link")
+    node_results = run_failure_simulations(
+        topologies, args.size, failure_probs, "node", args.trials
+    )
 
-    # Generate visualizations
-    visualize_results(topologies, failure_probs, node_results, link_results)
+    link_results = run_failure_simulations(
+        topologies, args.size, failure_probs, "link", args.trials
+    )
 
-    # Report execution time
+    visualize_results(
+        topologies, failure_probs, node_results, link_results, args.visual
+    )
+
     execution_time = time.time() - start_time
     print(f"Execution time: {execution_time:.2f} seconds")
 
+
 if __name__ == "__main__":
-    # Uncomment the mode you want to run
-    main()  # Run standard simulation
+    main()

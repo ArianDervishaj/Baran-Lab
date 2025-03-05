@@ -44,14 +44,8 @@ def simulate_failures(G, failure_percentage, failure_type="node"):
 def calculate_survival_level(G_original, G_failed):
     """
     Calculate network survival level as percentage of nodes in largest connected component.
-
-    Args:
-        G_original: Original NetworkX graph before failures
-        G_failed: NetworkX graph after failures
-
-    Returns:
-        Survival level as percentage (0-100)
     """
+
     if not G_original.nodes():
         return 0
 
@@ -96,7 +90,9 @@ def run_simulation(
     return list(means), list(stds)
 
 
-def run_failure_simulations(topologies, size, failure_probs, failure_type):
+def run_failure_simulations(
+    topologies, size, failure_probs, failure_type, num_trials=15
+):
     """
     Run simulations for all topologies with specified failure type.
 
@@ -114,15 +110,13 @@ def run_failure_simulations(topologies, size, failure_probs, failure_type):
     results = []
 
     for topo in topologies:
-        print(f"Running {failure_name} failure simulation for {topo['label']}...")
+        print(
+            f"Running {failure_name} failure simulation for {topo['label']}...")
         means, stds = run_simulation(
-            topo["generator"], size, failure_probs, failure_type
+            topo["generator"], size, failure_probs, failure_type, num_trials
         )
 
-        # Use dashed lines for link failures to distinguish from node failures
         format_spec = topo["format"]
-        if failure_type == "link":
-            format_spec = format_spec.replace("-", "--")
 
         results.append((means, stds, topo["label"], format_spec))
 
@@ -132,63 +126,11 @@ def run_failure_simulations(topologies, size, failure_probs, failure_type):
 def calculate_redundancy(G, size):
     """
     Calculate redundancy level R of the graph (edges / minimum edges needed).
-
-    Args:
-        G: NetworkX graph
-        size: Size parameter for redundancy calculation
-
-    Returns:
-        Redundancy ratio (>= 1.0)
     """
     min_links = len(G.nodes()) - 1
     if min_links <= 0:
         return 0
     return len(G.edges()) / min_links
-
-
-def calculate_link_cost(u, v, pos):
-    """
-    Calculate cost of a link between nodes using Euclidean distance.
-
-    Args:
-        u, v: Node IDs
-        pos: Dictionary mapping nodes to positions
-
-    Returns:
-        Cost value for the link
-    """
-    x1, y1 = pos[u]
-    x2, y2 = pos[v]
-    return ((x1 - x2) ** 2 + (y1 - y2) ** 2) ** 0.5
-
-
-def calculate_network_cost(G, pos):
-    """
-    Calculate total and per-node costs of a network.
-
-    Args:
-        G: NetworkX graph
-        pos: Dictionary mapping nodes to positions
-
-    Returns:
-        Dictionary with total_cost, cost_per_node, cost_per_redundancy
-    """
-    if not G.edges():
-        return {"total_cost": 0, "cost_per_node": 0, "cost_per_redundancy": 0}
-
-    total_cost = sum(calculate_link_cost(u, v, pos) for u, v in G.edges())
-    cost_per_node = total_cost / len(G.nodes()) if G.nodes() else 0
-
-    # Estimate size from position dictionary
-    size = int(np.sqrt(max(pos.keys()) + 1))
-    redundancy = calculate_redundancy(G, size)
-    cost_per_redundancy = total_cost / redundancy if redundancy > 0 else float("inf")
-
-    return {
-        "total_cost": total_cost,
-        "cost_per_node": cost_per_node,
-        "cost_per_redundancy": cost_per_redundancy,
-    }
 
 
 def calculate_node_importance(G):
@@ -209,6 +151,7 @@ def calculate_node_importance(G):
 
     importance = {}
     for node in G.nodes():
-        importance[node] = 0.4 * degree_cent[node] + 0.6 * betweenness_cent[node]
+        importance[node] = 0.4 * degree_cent[node] + \
+            0.6 * betweenness_cent[node]
 
     return importance
