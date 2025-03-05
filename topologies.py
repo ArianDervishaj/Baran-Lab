@@ -1,6 +1,5 @@
-import random
-
 import networkx as nx
+import numpy as np
 
 # Grid Coordinate Utilities
 
@@ -257,193 +256,6 @@ def create_tree_topology(size, branching_factor=3, max_depth=None):
     return G
 
 
-def create_realistic_hybrid_topology(size, seed=None):
-    """
-    Create a realistic hybrid network topology resembling real-world networks.
-
-    This creates a network with:
-    - A core/backbone component (mesh-like)
-    - Regional distribution networks (tree-like)
-    - Metropolitan areas (grid-like)
-    - Edge access networks (star-like)
-
-    Args:
-        size: Size of the grid
-        seed: Random seed for reproducibility
-
-    Returns:
-        NetworkX graph with a realistic hybrid topology
-    """
-    if seed is not None:
-        random.seed(seed)
-
-    G = init_graph(size)
-    total_nodes = size * size
-
-    # 1. Create the backbone/core network (small dense mesh at center)
-    core_size = max(3, size // 4)
-    core_start = (size - core_size) // 2
-    core_end = core_start + core_size
-
-    core_nodes = []
-    for i in range(core_start, core_end):
-        for j in range(core_start, core_end):
-            node = coords_to_node(i, j, size)
-            core_nodes.append(node)
-
-    # Create a dense (but not complete) core network
-    for i, u in enumerate(core_nodes):
-        for j, v in enumerate(core_nodes[i + 1:], i + 1):
-            # Create edges with high probability
-            if random.random() < 0.7:
-                G.add_edge(u, v)
-
-    # 2. Create regional networks (tree-like structures branching from core)
-    region_centers = [
-        coords_to_node(core_start - 1, core_start - 1, size),  # Upper left
-        coords_to_node(core_start - 1, core_end, size),  # Upper right
-        coords_to_node(core_end, core_start - 1, size),  # Lower left
-        coords_to_node(core_end, core_end, size),  # Lower right
-    ]
-
-    # Connect region centers to closest core nodes
-    for region_center in region_centers:
-        # Find closest core node
-        rc_i, rc_j = node_to_coords(region_center, size)
-        closest_core = min(
-            core_nodes,
-            key=lambda n: abs(rc_i - node_to_coords(n, size)[0])
-            + abs(rc_j - node_to_coords(n, size)[1]),
-        )
-        G.add_edge(region_center, closest_core)
-
-        # Create tree-like branches from each region center
-        # These simulate backbone connections to regional distribution
-        unvisited = [
-            n
-            for n in range(total_nodes)
-            if n not in core_nodes and n not in region_centers
-        ]
-
-        # Get nodes close to this region center
-        rc_i, rc_j = node_to_coords(region_center, size)
-        region_quadrant = []
-
-        # Determine which quadrant this region is in
-        is_upper = rc_i < size // 2
-        is_left = rc_j < size // 2
-
-        # Get nodes in the same quadrant
-        for node in unvisited:
-            n_i, n_j = node_to_coords(node, size)
-            if (is_upper == (n_i < size // 2)) and (is_left == (n_j < size // 2)):
-                if random.random() < 0.8:  # Not all nodes in the quadrant
-                    region_quadrant.append(node)
-
-        # Create a tree/hub structure in each region
-        if region_quadrant:
-            # Create some sub-regional hubs
-            num_hubs = min(4, max(1, len(region_quadrant) // 5))
-            # Ensure we don't try to sample more elements than exist in region_quadrant
-            num_hubs = min(num_hubs, len(region_quadrant))
-            hubs = random.sample(
-                region_quadrant, num_hubs) if num_hubs > 0 else []
-
-            # Connect hubs to region center
-            for hub in hubs:
-                G.add_edge(region_center, hub)
-
-            # Remaining nodes in region
-            remaining = [n for n in region_quadrant if n not in hubs]
-
-            # Connect nodes to closest hub with high probability
-            for node in remaining:
-                # Only try to find closest hub if there are hubs
-                if hubs:
-                    n_i, n_j = node_to_coords(node, size)
-                    closest_hub = min(
-                        hubs,
-                        key=lambda h: abs(n_i - node_to_coords(h, size)[0])
-                        + abs(n_j - node_to_coords(h, size)[1]),
-                    )
-
-                    # Connect to hub
-                    if random.random() < 0.9:
-                        G.add_edge(node, closest_hub)
-
-    # 3. Create metropolitan areas (small grid-like structures)
-    # Find areas that need more connectivity
-    components = list(nx.connected_components(G))
-
-    # If there are disconnected components, connect them
-    if len(components) > 1:
-        # Sort components by size (largest first)
-        components = sorted(components, key=len, reverse=True)
-
-        # Connect smaller components to the largest
-        largest = components[0]
-        for comp in components[1:]:
-            # Find closest nodes between components
-            closest_pair = None
-            min_dist = float("inf")
-
-            for u in comp:
-                u_i, u_j = node_to_coords(u, size)
-                for v in largest:
-                    v_i, v_j = node_to_coords(v, size)
-                    dist = abs(u_i - v_i) + abs(u_j - v_j)
-                    if dist < min_dist:
-                        min_dist = dist
-                        closest_pair = (u, v)
-
-            if closest_pair:
-                G.add_edge(*closest_pair)
-
-    # 4. Create edge access networks (star-like structures)
-    # Identify good locations for access networks
-    low_degree_nodes = [n for n, d in G.degree() if 0 < d <= 2]
-
-    # Create small star networks around some low-degree nodes
-    num_access_networks = min(size, len(low_degree_nodes) // 3)
-
-    if num_access_networks > 0:
-        access_centers = random.sample(low_degree_nodes, num_access_networks)
-
-        # For each access center, find nearby unconnected nodes
-        for center in access_centers:
-            c_i, c_j = node_to_coords(center, size)
-
-            # Find nodes close to this center that have no connections
-            nearby_unconnected = []
-            for node in range(total_nodes):
-                if G.degree(node) == 0:
-                    n_i, n_j = node_to_coords(node, size)
-                    dist = abs(c_i - n_i) + abs(c_j - n_j)
-                    if dist <= 3:  # Close enough to be "nearby"
-                        nearby_unconnected.append(node)
-
-            # Connect some nearby nodes to this center
-            for node in nearby_unconnected:
-                if random.random() < 0.8:
-                    G.add_edge(center, node)
-
-    # 5. Ensure the graph is connected
-    if not nx.is_connected(G):
-        components = list(nx.connected_components(G))
-
-        # Connect all components to the largest one
-        largest = max(components, key=len)
-        other_components = [c for c in components if c != largest]
-
-        for component in other_components:
-            # Pick a random node from each component and connect to largest
-            node_from_component = random.choice(list(component))
-            node_from_largest = random.choice(list(largest))
-            G.add_edge(node_from_component, node_from_largest)
-
-    return G
-
-
 def create_hybrid_topology(size):
     """
     Maintain original hybrid topology for compatibility, but use the
@@ -452,4 +264,16 @@ def create_hybrid_topology(size):
     Returns:
         NetworkX graph with a hybrid topology
     """
-    return create_realistic_hybrid_topology(size, seed=42)
+    full_size = size**2
+    if full_size < 50:
+        m = 2
+    elif full_size < 200:
+        m = 3
+    else:
+        m = 4
+
+    p = 0.5
+
+    # Generate the Holme-Kim model graph
+    G = nx.powerlaw_cluster_graph(full_size, m, p, seed=42)
+    return G
