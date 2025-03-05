@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import networkx as nx
+import numpy as np
 
 from simulation import calculate_node_importance, calculate_redundancy
 
@@ -83,10 +84,15 @@ def _plot_failure_subplot(ax, failure_probs, results_data, title, xlabel):
 
         color, marker, linestyle = _parse_format(format_spec)
 
+        # Lower error can't go below 0, upper error can't go above 100
+        yerr_lower = np.minimum(std_dev, results)
+        yerr_upper = np.minimum(std_dev, 100 - np.array(results))
+        yerr = [yerr_lower, yerr_upper]
+
         ax.errorbar(
             failure_probs,
             results,
-            yerr=std_dev,
+            yerr=yerr,
             marker=marker,
             linestyle=linestyle,
             color=color,
@@ -162,7 +168,7 @@ def get_layout_algorithm(topology_name, graph, seed=42):
         pos = nx.spring_layout(graph, seed=seed, iterations=100, scale=10)
 
     elif "hybrid" in topology_name.lower():
-        pos = nx.spring_layout(graph, seed=seed, iterations=100, scale=10)
+        pos = nx.spring_layout(graph, seed=seed, iterations=500)
 
     else:
         pos = nx.spring_layout(graph, seed=seed, iterations=100, scale=10)
