@@ -68,8 +68,7 @@ def define_topologies():
 
 def parse_arguments():
     """Parse command-line arguments"""
-    parser = argparse.ArgumentParser(
-        description="Network Resilience Simulation")
+    parser = argparse.ArgumentParser(description="Network Resilience Simulation")
     parser.add_argument(
         "-s",
         "--size",
@@ -81,8 +80,8 @@ def parse_arguments():
         "-p",
         "--points",
         type=int,
-        default=21,
-        help="Number of probability points (default: 21)",
+        default=25,
+        help="Number of probability points (default: 25)",
     )
     parser.add_argument(
         "-n",
@@ -111,7 +110,7 @@ def main():
 
     start_time = time.time()
 
-    failure_probs = np.linspace(0, 1, args.points + 1)
+    failure_probs = np.linspace(0, 1, args.points)
 
     topologies = define_topologies()
 
@@ -124,7 +123,7 @@ def main():
     )
 
     visualize_results(
-        topologies, failure_probs, node_results, link_results, args.visual
+        topologies, failure_probs, node_results, link_results, args.size, args.visual
     )
 
     execution_time = time.time() - start_time

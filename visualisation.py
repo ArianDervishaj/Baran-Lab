@@ -46,7 +46,7 @@ def _parse_format(format_spec):
     return color, marker, linestyle
 
 
-def plot_both_failures(failure_probs, node_results, link_results):
+def plot_both_failures(failure_probs, node_results, link_results, size):
     """
     Plot node failures and link failures side by side with appropriate reference lines.
     """
@@ -71,7 +71,7 @@ def plot_both_failures(failure_probs, node_results, link_results):
         "Probabilité de panne des liens (P)",
     )
 
-    _add_link_theoretical_line(link_ax, failure_probs)
+    _add_link_theoretical_line(link_ax, failure_probs, size)
 
     plt.suptitle("Comparaison des topologies de réseau", fontsize=16)
     plt.show()
@@ -103,8 +103,7 @@ def _plot_failure_subplot(ax, failure_probs, results_data, title, xlabel):
     # Optimal line for node failures
     if "liens" not in xlabel:
         reference_line = [100 * (1 - p) for p in failure_probs]
-        ax.plot(failure_probs, reference_line, "k--",
-                label="Meilleure ligne possible")
+        ax.plot(failure_probs, reference_line, "k--", label="Meilleure ligne possible")
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel("Niveau de survie (S) %")
@@ -113,10 +112,9 @@ def _plot_failure_subplot(ax, failure_probs, results_data, title, xlabel):
     ax.legend()
 
 
-def _add_link_theoretical_line(ax, failure_probs):
+def _add_link_theoretical_line(ax, failure_probs, size):
     """Add theoretical optimum line for link failures"""
-    SIZE = 18
-    node_count = SIZE * SIZE
+    node_count = size * size
 
     # Full mesh has n*(n-1)/2 edges
     total_edges = node_count * (node_count - 1) // 2
@@ -132,8 +130,7 @@ def _add_link_theoretical_line(ax, failure_probs):
             theoretical_line.append(100)
         else:
             # Approximate scaling as edges are removed below minimum threshold
-            theoretical_line.append(
-                100 * (remaining_edges / min_edges_required))
+            theoretical_line.append(100 * (remaining_edges / min_edges_required))
 
     ax.plot(
         failure_probs,
@@ -192,8 +189,7 @@ def visualize_topologies_with_importance(topologies, visual_size=6):
     fig.suptitle("Topologies de réseau avec importance des nœuds", fontsize=12)
 
     for i, (topo, graph, stats, importance) in enumerate(topology_data):
-        _plot_topology(fig, grid, i, cols, topo, graph,
-                       stats, importance, visual_size)
+        _plot_topology(fig, grid, i, cols, topo, graph, stats, importance, visual_size)
 
     for i in range(num_topologies, rows * cols):
         row, col = i // cols, i % cols
@@ -272,7 +268,7 @@ def _plot_topology(fig, grid, index, cols, topo, graph, stats, importance, small
 
 
 def visualize_results(
-    topologies, failure_probs, node_results, link_results, visual_size=6
+    topologies, failure_probs, node_results, link_results, size, visual_size=6
 ):
     """
     Generate all visualizations.
@@ -280,4 +276,4 @@ def visualize_results(
     visualize_topologies_with_importance(topologies, visual_size)
 
     print("\nPlotting combined comparison with appropriate best lines...")
-    plot_both_failures(failure_probs, node_results, link_results)
+    plot_both_failures(failure_probs, node_results, link_results, size)

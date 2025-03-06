@@ -1,7 +1,4 @@
 import networkx as nx
-import numpy as np
-
-# Grid Coordinate Utilities
 
 
 def init_graph(size):
@@ -82,8 +79,7 @@ def create_grid_plus_topology(size):
     # Add diagonal connections (top-left to bottom-right)
     for i in range(size - 1):
         for j in range(size - 1):
-            G.add_edge(coords_to_node(i, j, size),
-                       coords_to_node(i + 1, j + 1, size))
+            G.add_edge(coords_to_node(i, j, size), coords_to_node(i + 1, j + 1, size))
 
     return G
 
@@ -100,8 +96,7 @@ def create_grid_plus_plus_topology(size):
     # Add the other diagonal (top-right to bottom-left)
     for i in range(size - 1):
         for j in range(1, size):
-            G.add_edge(coords_to_node(i, j, size),
-                       coords_to_node(i + 1, j - 1, size))
+            G.add_edge(coords_to_node(i, j, size), coords_to_node(i + 1, j - 1, size))
 
     return G
 
@@ -152,14 +147,9 @@ def create_tree_topology(size, branching_factor=3, max_depth=None):
         size: Size of the grid
         branching_factor: Maximum number of children per node
         max_depth: Maximum depth of the tree (None for unlimited)
-
-    Returns:
-        NetworkX graph with a tree topology
     """
-    # Use NetworkX's balanced_tree if appropriate
     total_nodes = size * size
 
-    # Try to approximate with a balanced tree
     if branching_factor > 1:
         # Calculate the depth needed for this branching factor and total nodes
         # n = 1 + r + r^2 + ... + r^d for a tree with depth d and branching r
@@ -172,7 +162,6 @@ def create_tree_topology(size, branching_factor=3, max_depth=None):
             nodes_at_depth *= branching_factor
             total += nodes_at_depth
 
-        # Create a balanced tree with calculated depth
         G = nx.balanced_tree(branching_factor, depth)
 
         # If we have more nodes than needed, remove some leaf nodes
@@ -184,12 +173,10 @@ def create_tree_topology(size, branching_factor=3, max_depth=None):
             excess = G.number_of_nodes() - total_nodes
             G.remove_nodes_from(leaf_nodes[:excess])
 
-        # Relabel nodes to match our convention (0 to total_nodes-1)
         mapping = {old: new for new, old in enumerate(sorted(G.nodes()))}
         G = nx.relabel_nodes(G, mapping)
 
-        # Center the root node
-        root = 0  # Assuming 0 is the root in the balanced tree
+        root = 0
         center = coords_to_node(size // 2, size // 2, size)
 
         if root != center:
@@ -201,68 +188,11 @@ def create_tree_topology(size, branching_factor=3, max_depth=None):
 
         return G
 
-    # Fall back to the original implementation if balanced_tree isn't suitable
-    G = init_graph(size)
-
-    # Define the root node at the center of the grid
-    root_node = coords_to_node(size // 2, size // 2, size)
-
-    # BFS tree construction
-    current_level = [root_node]
-    next_level = []
-    visited = {root_node}
-
-    # Direction priorities: cardinal directions first, then diagonals
-    directions = [
-        (-1, 0),
-        (1, 0),
-        (0, -1),
-        (0, 1),  # Cardinal directions
-        (-1, -1),
-        (-1, 1),
-        (1, -1),
-        (1, 1),  # Diagonal directions
-    ]
-
-    depth = 0
-    while current_level and (max_depth is None or depth < max_depth):
-        for parent in current_level:
-            parent_i, parent_j = node_to_coords(parent, size)
-            children_candidates = []
-
-            # Check all possible directions for children
-            for di, dj in directions:
-                child_i, child_j = parent_i + di, parent_j + dj
-
-                # Check if within grid bounds
-                if 0 <= child_i < size and 0 <= child_j < size:
-                    child = coords_to_node(child_i, child_j, size)
-                    if child not in visited:
-                        children_candidates.append(child)
-
-            # Take only up to branching_factor children
-            children = children_candidates[:branching_factor]
-
-            # Connect parent to children
-            for child in children:
-                G.add_edge(parent, child)
-                next_level.append(child)
-                visited.add(child)
-
-        current_level = next_level
-        next_level = []
-        depth += 1
-
-    return G
-
 
 def create_hybrid_topology(size):
     """
     Maintain original hybrid topology for compatibility, but use the
     more sophisticated realistic hybrid topology underneath.
-
-    Returns:
-        NetworkX graph with a hybrid topology
     """
     full_size = size**2
     if full_size < 50:
@@ -274,6 +204,5 @@ def create_hybrid_topology(size):
 
     p = 0.5
 
-    # Generate the Holme-Kim model graph
     G = nx.powerlaw_cluster_graph(full_size, m, p, seed=42)
     return G
